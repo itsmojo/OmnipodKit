@@ -593,21 +593,7 @@ struct OmniSettingsView: View  {
                 }
             }
 
-            if self.viewModel.podType.isO5 {
-                Section() {
-                    let localizedCertificateDetailsStr = LocalizedString("Certificate Details",
-                        comment: "Text for Certificate Details row and page")
-                    NavigationLink(destination: CertificateDetailsView(
-                        title: localizedCertificateDetailsStr,
-                        hasActivePod: !viewModel.noPod,
-                        myId: viewModel.controllerId,
-                        refreshO5IdsFromCertStore: viewModel.refreshO5IdsFromCertStore))
-                    {
-                        FrameworkLocalText("Certificate Details", comment: "Text for certificate navigation link in OmniSettingsView")
-                            .foregroundColor(Color.primary)
-                    }
-                }
-            } else if self.viewModel.podType.isDash {
+            if self.viewModel.podType.isDash {
                 Section() {
                     let localizedPodKeepAliveStr = LocalizedString("Pod Keep Alive",
                         comment: "Title for the pod keep alive row and page")
@@ -632,7 +618,10 @@ struct OmniSettingsView: View  {
                     title: localizedPodDiagnosticsStr,
                     diagnosticCommands: viewModel.diagnosticCommands,
                     podOk: viewModel.podOk,
-                    noPod: viewModel.noPod))
+                    noPod: viewModel.noPod,
+                    isO5: viewModel.podType.isO5,
+                    controllerId: viewModel.controllerId,
+                    refreshO5IdsFromCertStore: viewModel.refreshO5IdsFromCertStore))
                 {
                     Text(localizedPodDiagnosticsStr)
                         .foregroundColor(Color.primary)

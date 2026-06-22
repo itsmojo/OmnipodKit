@@ -14,6 +14,7 @@
 //
 
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 import LoopKit
 import LoopKitUI
@@ -43,7 +44,7 @@ struct CertificateDetailsView: View {
                         .foregroundColor(.secondary)
                 }
             } else if rows.count == 1 {
-                certificateContent(
+                CertificateContent(
                     data: rows[0].data,
                     source: rows[0].source,
                     hasActivePod: hasActivePod,
@@ -169,7 +170,7 @@ struct PodCertificateDetailView: View {
 
     var body: some View {
         List {
-            certificateContent(
+            CertificateContent(
                 data: data,
                 source: source,
                 hasActivePod: hasActivePod,
@@ -187,39 +188,12 @@ struct PodCertificateDetailView: View {
     }
 }
 
-@ViewBuilder
-fileprivate func certificateContent(
-    data: O5RegistrationData,
-    source: O5RegistrationSource,
-    hasActivePod: Bool,
-    myId: UInt32,
-    onForgotten: @escaping () -> Void,
-    refreshO5IdsFromCertStore: @escaping () -> Void
-) -> some View {
-    Section {
-        Text(dump(data: data, source: source))
-            .font(Font.system(size: 12).monospaced())
-            .textSelection(.enabled)
-    }
+private struct CertificateContent: View {
 
-    if source != .builtIn {
-        Section {
-            ForgetCertificateButton(
-                controllerId: data.controllerId,
-                myId: myId,
-                hasActivePod: hasActivePod,
-                onForgotten: onForgotten,
-                refreshO5IdsFromCertStore: refreshO5IdsFromCertStore
-            )
-        }
-    }
-}
-
-private struct ForgetCertificateButton: View {
-
-    let controllerId: UInt32
-    let myId: UInt32
+    let data: O5RegistrationData
+    let source: O5RegistrationSource
     let hasActivePod: Bool
+    let myId: UInt32
     let onForgotten: () -> Void
     let refreshO5IdsFromCertStore: () -> Void
 
@@ -227,36 +201,29 @@ private struct ForgetCertificateButton: View {
 
     let ncerts = O5RegistrationData.allValues.count
 
-    private var confirmMessage: String {
-        var activePodMessage = ""
-        var baseMessage = ""
-        if hasActivePod {
-            activePodMessage = LocalizedString("Your current Omnipod 5 Pod session will not be affected. ",
-                comment: "Confirmation message when forgetting a saved O5 certificate while a pod session is active"
-            )
-        }
-        if ncerts == 1 {
-            baseMessage = LocalizedString("You will be unable to pair with a new Omnipod 5 Pod until you reconnect to the Internet to download a new certificate.",
-                comment: "Confirmation message when a new certificate will need to be downloaded"
-            )
-        } else if myId == controllerId {
-            baseMessage = LocalizedString("A new certificate will be used for the next Omnipod 5 Pod pairing.",
-                comment: "Confirmation message when a new certificate will be used"
-            )
-        } else if activePodMessage.isEmpty {
-            baseMessage = LocalizedString("This certificate will be permanently deleted.",
-                comment: "Confirmation message when forgetting a saved O5 certificate"
-            )
-        }
-
-        return activePodMessage + baseMessage
-    }
-
     var body: some View {
-        Button(role: .destructive) {
-            pendingForget = true
-        } label: {
-            Text(LocalizedString("Forget Saved Certificate", comment: "Destructive button to remove a saved O5 certificate"))
+        Section {
+            Text(dump(data: data, source: source))
+                .font(Font.system(size: 12).monospaced())
+                .contextMenu {
+                    Button {
+                        UIPasteboard.general.string = String(format: "0x%08X", data.controllerId)
+                    } label: {
+                        Label(LocalizedString("Copy Controller ID", comment: "Context menu action to copy the O5 controller ID"), systemImage: "doc.on.doc")
+                    }
+                    Button {
+                        UIPasteboard.general.string = data.publicKeyHex
+                    } label: {
+                        Label(LocalizedString("Copy Public Key", comment: "Context menu action to copy the O5 public key"), systemImage: "doc.on.doc")
+                    }
+                    if source != .builtIn {
+                        Button(role: .destructive) {
+                            pendingForget = true
+                        } label: {
+                            Label(LocalizedString("Forget Saved Certificate", comment: "Destructive action to remove a saved O5 certificate"), systemImage: "trash")
+                        }
+                    }
+                }
         }
         .confirmationDialog(
             confirmMessage,
@@ -270,10 +237,35 @@ private struct ForgetCertificateButton: View {
         }
     }
 
+    private var confirmMessage: String {
+        var activePodMessage = ""
+        var baseMessage = ""
+        if hasActivePod {
+            activePodMessage = LocalizedString("Your current Omnipod 5 Pod session will not be affected. ",
+                comment: "Confirmation message when forgetting a saved O5 certificate while a pod session is active"
+            )
+        }
+        if ncerts == 1 {
+            baseMessage = LocalizedString("You will be unable to pair with a new Omnipod 5 Pod until you reconnect to the Internet to download a new certificate.",
+                comment: "Confirmation message when a new certificate will need to be downloaded"
+            )
+        } else if myId == data.controllerId {
+            baseMessage = LocalizedString("A new certificate will be used for the next Omnipod 5 Pod pairing.",
+                comment: "Confirmation message when a new certificate will be used"
+            )
+        } else if activePodMessage.isEmpty {
+            baseMessage = LocalizedString("This certificate will be permanently deleted.",
+                comment: "Confirmation message when forgetting a saved O5 certificate"
+            )
+        }
+
+        return activePodMessage + baseMessage
+    }
+
     private func forget() {
-        try? O5CertificateKeychain.delete(controllerId: controllerId)
-        O5RegistrationData.remove(controllerId: controllerId)
-        if controllerId == myId {
+        try? O5CertificateKeychain.delete(controllerId: data.controllerId)
+        O5RegistrationData.remove(controllerId: data.controllerId)
+        if data.controllerId == myId {
             // Just deleted the currently used certificate, so refresh to
             // pickup another one immediately if pod not currently active.
             refreshO5IdsFromCertStore()
@@ -293,8 +285,8 @@ fileprivate func dump(data: O5RegistrationData, source: O5RegistrationSource) ->
 
 fileprivate func sourceLabel(_ source: O5RegistrationSource) -> String {
     switch source {
-    case .builtIn:  return "Built-in (compiled into app)"
-    case .imported: return "Imported (o5keypair file)"
-    case .downloaded:  return "Downloaded (in O5 Setup)"
+    case .builtIn:  return "Compiled"
+    case .imported: return "Imported"
+    case .downloaded:  return "API"
     }
 }
