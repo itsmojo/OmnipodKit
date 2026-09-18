@@ -642,8 +642,18 @@ struct OmniSettingsView: View  {
                 }
             }
 
-            if self.viewModel.podType.isDash {
-                Section {
+            Section() {
+                let localizedPodDiagnosticsStr = LocalizedString("Pod Diagnostics", comment: "Title for the Pod Diagnostic row and page")
+                NavigationLink(destination: PodDiagnosticsView(
+                    title: localizedPodDiagnosticsStr,
+                    diagnosticCommands: viewModel.diagnosticCommands,
+                    podOk: viewModel.podOk,
+                    noPod: viewModel.noPod))
+                {
+                    Text(localizedPodDiagnosticsStr)
+                        .foregroundColor(Color.primary)
+                }
+                if !self.viewModel.podType.isEros {
                     let localizedPodKeepAliveStr = LocalizedString("Pod Keep Alive",
                         comment: "Title for the pod keep alive row and page")
                     NavigationLink(destination: PodKeepAliveView(title: localizedPodKeepAliveStr,
@@ -654,7 +664,7 @@ struct OmniSettingsView: View  {
                             Text(localizedPodKeepAliveStr)
                                 .foregroundColor(Color.primary)
                             Spacer()
-                            Text(viewModel.podKeepAlivePreference.title)
+                            Text(viewModel.podKeepAlivePreference.displayTitle)
                                 .foregroundColor(Color.secondary)
                         }
                     }
@@ -683,19 +693,6 @@ struct OmniSettingsView: View  {
                             }
                         }
                     }
-                }
-            }
-
-            Section() {
-                let localizedPodDiagnosticsStr = LocalizedString("Pod Diagnostics", comment: "Title for the Pod Diagnostic row and page")
-                NavigationLink(destination: PodDiagnosticsView(
-                    title: localizedPodDiagnosticsStr,
-                    diagnosticCommands: viewModel.diagnosticCommands,
-                    podOk: viewModel.podOk,
-                    noPod: viewModel.noPod))
-                {
-                    Text(localizedPodDiagnosticsStr)
-                        .foregroundColor(Color.primary)
                 }
             }
 
@@ -741,7 +738,7 @@ struct OmniSettingsView: View  {
         .onDisappear {
             rileyLinkListDataSource.isScanningEnabled = false
         }
-        .onChange(of: viewModel.podKeepAlivePreference) { newValue in
+        .onChange(of: viewModel.podKeepAlivePreference) { oldValue, newValue in
             rileyLinkListDataSource.isScanningEnabled = (newValue == .rileyLink)
         }
         .alert(isPresented: $viewModel.alertIsPresented, content: { alert(for: viewModel.activeAlert!) })

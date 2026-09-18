@@ -27,17 +27,26 @@ enum PodKeepAlive: Int, CaseIterable, Codable {
         }
     }
 
+    // The displayed name for the UI -- maps the internal only "When Open" mode as "Disabled"
+    var displayTitle: String {
+        switch self {
+        case .disabled, .silentTune, .rileyLink:
+            return self.title
+        case .whenOpen:
+            return PodKeepAlive.disabled.title /// display this internal only mode as disabled in the UI
+        }
+    }
+
     var description: String {
         switch self {
         case .disabled:
-            return LocalizedString("Pod keep alive disabled. Additional pod status requests are not issued to prevent pod disconnects (nominal behavior).", comment: "Description for PodKeepAlive.disabled")
+            return LocalizedString("Pod keep alive disabled (nominal behavior).", comment: "Description for PodKeepAlive.disabled")
         case .silentTune:
-            return LocalizedString("Pod keep alive enabled. Attempt to keep pod connected by issuing additional pod status request after 2 minutes, 40 seconds even when phone is locked by playing a silent tune. The silent tune may be interrupted by other apps. If silent tune is interrupted, pod keep alive stops working. The silent tune consumes extra iPhone battery.", comment: "Description for PodKeepAlive.silentTune")
+            return LocalizedString("Pod keep alive enabled using a silent tune. If silent tune is interrupted by other apps, pod keep alive stops working. The silent tune consumes extra iPhone battery.", comment: "Description for PodKeepAlive.silentTune")
         case .rileyLink:
-            return LocalizedString("Pod keep alive enabled. Additional pod status request issued after 2 minutes.\n\nRequires a RileyLink-compatible device within Bluetooth range. Allows pod keep alive messages when app is in background. This method uses less iPhone battery and slightly more DASH battery than the Silent Tune method. A RileyLink-compatible device must be enabled in pump view.",
-                comment: "Description for PodKeepAlive.rileyLink")
+            return LocalizedString("Pod keep alive enabled using a selected RileyLink-compatible device in the pump view. This method uses less iPhone battery than the Silent Tune method.", comment: "Description for PodKeepAlive.rileyLink")
         case .whenOpen:
-            return LocalizedString("Pod keep alive enabled when app is in the foreground with phone unlocked. Attempt to keep pod connected by issuing additional pod status request after 2 minutes, 40 seconds.", comment: "Description for PodKeepAlive.whenOpen")
+            return "" /// Should never be displayed, now for internal use only
         }
     }
 
@@ -67,7 +76,7 @@ enum PodKeepAlive: Int, CaseIterable, Codable {
         case .silentTune:
             return true /// Uses timer based keep alives, both when in foreground and in background
         case .rileyLink:
-            return false // Uses BLE wakeups
+            return false /// Uses BLE wakeups instead of timers
         case .whenOpen:
             return true /// Uses timer based keep alives, but only when in foreground
         }

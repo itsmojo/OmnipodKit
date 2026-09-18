@@ -39,27 +39,24 @@ struct PodKeepAliveView: View {
             List {
                 Section {
                     VStack(alignment: .center, spacing: 4) {
-                        Text("For use with iPhone 16 or iPhone 17e when used with InPlay BLE (Atlas) DASH pods; otherwise leave disabled.", comment: "Hardware which benefits from Pod Keep Alive")
-                            .font(.body)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("When enabled, additional pod status requests are issued to minimize pod Bluetooth disconnects.", comment: "Summary of the Pod Keep Alive concept")
+                        Text("Issues additional periodic status requests to try to minimize Bluetooth disconnects. Should no longer be needed for any iPhone and Omnipod combination.", comment: "Summary of the Pod Keep Alive concept")
                             .font(.body)
                             .foregroundColor(.primary)
                     }
                 }
 
                 Section {
-                    ForEach(PodKeepAlive.allCases, id: \.self) { preference in
+                    /// Skip actually displaying the internal auto selected .whenOpen value as a user option
+                    ForEach(PodKeepAlive.allCases.filter { $0 != .whenOpen }, id: \.self) { preference in
                         HStack {
                             CheckmarkListItem(
                                 title: Text(preference.title),
                                 description: Text(preference.description),
                                 isSelected: Binding(
-                                    get: { self.preference == preference },
+                                    get: {
+                                        /// Checkmark on match which includes an internal .whenOpen value matching .disabled
+                                        self.preference == preference || (preference == .disabled && self.preference == .whenOpen)
+                                    },
                                     set: { isSelected in
                                         if isSelected {
                                             self.preference = preference

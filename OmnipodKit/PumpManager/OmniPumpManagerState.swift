@@ -124,7 +124,7 @@ public struct OmniPumpManagerState: RawRepresentable, Equatable {
         maxBolusUnits: Double,
         insulinType: InsulinType?,
         podType: PodType,
-        podKeepAlive: PodKeepAlive = .disabled, /// currently only available for DASH
+        podKeepAlive: PodKeepAlive = .disabled, // BLE
         rileyLinkConnectionManagerState: RileyLinkConnectionState? = nil, /// Eros or PodKeepAlive RileyLink option
         controllerId: UInt32? = nil, // BLE
         podId: UInt32? = nil) // BLE
@@ -150,9 +150,7 @@ public struct OmniPumpManagerState: RawRepresentable, Equatable {
         self.podType = podType
         self.podKeepAlive = podKeepAlive
 
-        if podType.mayUseRileyLink {
-            self.rileyLinkConnectionManagerState = rileyLinkConnectionManagerState
-        }
+        self.rileyLinkConnectionManagerState = rileyLinkConnectionManagerState
 
         if podType.isEros {
             self.controllerId = 0
@@ -277,7 +275,7 @@ public struct OmniPumpManagerState: RawRepresentable, Equatable {
         }
 
         let rileyLinkConnectionManagerState: RileyLinkConnectionState?
-        if podType.mayUseRileyLink {
+        if podType.isEros || podKeepAlive == .rileyLink {
             if let rileyLinkConnectionManagerStateRaw = rawValue["rileyLinkConnectionManagerState"] as? RileyLinkConnectionState.RawValue {
                 rileyLinkConnectionManagerState = RileyLinkConnectionState(rawValue: rileyLinkConnectionManagerStateRaw)
             } else {
@@ -296,10 +294,10 @@ public struct OmniPumpManagerState: RawRepresentable, Equatable {
             maxBolusUnits: maxBolusUnits,
             insulinType: insulinType ?? .novolog,
             podType: podType,
-            podKeepAlive: podKeepAlive, // currently only available for DASH
-            rileyLinkConnectionManagerState: rileyLinkConnectionManagerState, // Eros only
-            controllerId: controllerId, // non-Eros only
-            podId: podId // non-Eros only
+            podKeepAlive: podKeepAlive,
+            rileyLinkConnectionManagerState: rileyLinkConnectionManagerState,
+            controllerId: controllerId,
+            podId: podId
         )
 
         if let rawUnstoredDoses = rawValue["unstoredDoses"] as? [UnfinalizedDose.RawValue] {
