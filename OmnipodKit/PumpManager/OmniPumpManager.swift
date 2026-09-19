@@ -16,8 +16,6 @@ import UserNotifications
 import Combine
 import os.log
 
-fileprivate var basePKAmode: PodKeepAlive = .whenOpen /// base PKA mode to use for all BLE pods
-
 protocol PodStateObserver: AnyObject {
     func podStateDidUpdate(_ state: PodState?)
     func podConnectionStateDidChange(isConnected: Bool)
@@ -883,9 +881,10 @@ extension OmniPumpManager {
         }
         set {
             let newValueToSet: PodKeepAlive
-            if newValue == .disabled && basePKAmode != .disabled && !state.podType.isEros {
-                log.debug("@@@ Setting podKeepAlive to base %{public}@", String(describing: basePKAmode))
-                newValueToSet = basePKAmode
+            let defaultPKA = defaultPodKeepAliveValue(podType: self.state.podType)
+            if newValue == .disabled && defaultPKA != .disabled {
+                log.debug("@@@ Setting podKeepAlive to default %{public}@", String(describing: defaultPKA))
+                newValueToSet = defaultPKA
             } else {
                 newValueToSet = newValue /// set podKeepAlive to the requested value
             }
@@ -901,15 +900,15 @@ extension OmniPumpManager {
                 disconnectRileyLinkDevices()
             }
 
-            /// Handle all the setup/teardown for timer based pod keep alive modes
-            setPodKeepAliveTimerState(newValueToSet)
-
-            /// Reset the BluetoothManager podKeepAliveKeepsConnectedInBackground var for managing pod connections
-            (podComms as? BlePodComms)?.setPodKeepAliveKeepsConnectedInBackground(newValueToSet.keepsPodConnectedInBackground)
-
             setState { (state) in
                 state.podKeepAlive = newValueToSet
             }
+
+            /// Now handle all the setup/teardown for timer based pod keep alive modes for the new value
+            setPodKeepAliveTimerState()
+
+            /// Reset the BluetoothManager podKeepAliveKeepsConnectedInBackground var for managing pod connections
+            (podComms as? BlePodComms)?.setPodKeepAliveKeepsConnectedInBackground(newValueToSet.keepsPodConnectedInBackground)
 
             /// If pod keep alive value is now rileyLink, update our RL connections
             if newValueToSet == .rileyLink {
@@ -1421,10 +1420,11 @@ extension OmniPumpManager {
                             // Have new podState, reset all the per pod pump manager state
                             self.resetPerPodPumpManagerState()
 
-                            // Set the base Pod Keep Alive mode for all BLE pods
-                            if self.state.podKeepAlive == .disabled && basePKAmode != .disabled {
-                                self.log.debug("@@@ Setting base pod keep alive to %{public}@ mode", String(describing: basePKAmode))
-                                self.podKeepAlive = basePKAmode
+                            // Set the default Pod Keep Alive for all BLE pods
+                            let defaultPKA = defaultPodKeepAliveValue(podType: self.state.podType)
+                            if self.state.podKeepAlive == .disabled && defaultPKA != .disabled {
+                                self.log.debug("@@@ Setting default pod keep alive to %{public}@", String(describing: defaultPKA))
+                                self.podKeepAlive = defaultPKA
                             }
 
                             self.pumpDelegate.notify { (delegate) in

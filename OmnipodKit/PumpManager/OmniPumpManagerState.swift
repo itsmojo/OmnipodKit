@@ -123,7 +123,7 @@ public struct OmniPumpManagerState: RawRepresentable, Equatable {
         maxBolusUnits: Double,
         insulinType: InsulinType?,
         podType: PodType,
-        podKeepAlive: PodKeepAlive = .disabled, /// Will be auto updated to base whenOpen mode for BLE pods
+        podKeepAlive: PodKeepAlive,
         rileyLinkConnectionManagerState: RileyLinkConnectionState? = nil, /// Eros or PodKeepAlive RileyLink option
         controllerId: UInt32? = nil, // BLE
         podId: UInt32? = nil) // BLE
@@ -266,11 +266,12 @@ public struct OmniPumpManagerState: RawRepresentable, Equatable {
             }
         }
 
-        var podKeepAlive: PodKeepAlive
+        let podKeepAlive: PodKeepAlive
+        let defaultPKA = defaultPodKeepAliveValue(podType: podType)
         if let rawPodKeepAlive = rawValue["podKeepAlive"] as? PodKeepAlive.RawValue {
-            podKeepAlive = PodKeepAlive(rawValue: rawPodKeepAlive) ?? .disabled
+            podKeepAlive = PodKeepAlive(rawValue: rawPodKeepAlive) ?? defaultPKA
         } else {
-            podKeepAlive = .disabled /// Will be auto updated to base whenOpen mode for BLE pods
+            podKeepAlive = defaultPKA
         }
 
         let rileyLinkConnectionManagerState: RileyLinkConnectionState?

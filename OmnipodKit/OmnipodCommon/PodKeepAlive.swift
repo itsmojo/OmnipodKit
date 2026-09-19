@@ -73,3 +73,11 @@ enum PodKeepAlive: Int, CaseIterable, Codable {
         }
     }
 }
+
+/// Return the default Pod Keep Alive value for the given podType
+func defaultPodKeepAliveValue(podType: PodType) -> PodKeepAlive {
+    if podType.isDash || podType.isO5 {
+        return .whenOpen /// default value for all BLE pod types to improve the user experience
+    }
+    return .disabled
+}
