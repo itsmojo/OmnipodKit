@@ -751,6 +751,10 @@ extension OmniPumpManager {
         return state.hasSetupPod
     }
 
+    var hasPairedNonFaultedPod: Bool {
+        return state.hasPairedNonFaultedPod
+    }
+
     // If time remaining is negative, the pod has been expired for that amount of time.
     var podTimeRemaining: TimeInterval? {
         guard let expiresAt = state.podState?.expiresAt else { return nil }
@@ -1689,7 +1693,7 @@ extension OmniPumpManager {
         // Don't use guard state.hasActivePod here as it prevents getPodStatus from working
         // after the pod has been paired, but before the pod setup process has been completed.
         // Instead just verify that the pod is at least paired and not faulted.
-        guard state.podState?.setupProgress.isPaired == true, state.podState?.isFaulted == false else {
+        guard hasPairedNonFaultedPod else {
             completion?(.failure(PumpManagerError.configuration(OmniPumpManagerError.noPodPaired)))
             return
         }

@@ -419,6 +419,10 @@ extension OmniPumpManagerState {
         return podState?.isSetupComplete == true
     }
 
+    var hasPairedNonFaultedPod: Bool {
+        return podState?.setupProgress.isPaired == true && podState?.isFaulted == false
+    }
+
     var isPumpDataStale: Bool {
         let pumpStatusAgeTolerance = TimeInterval(minutes: 6)
         let pumpDataAge = -(self.lastPumpDataReportDate ?? .distantPast).timeIntervalSinceNow
