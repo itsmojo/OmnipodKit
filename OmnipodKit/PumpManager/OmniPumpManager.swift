@@ -16,6 +16,8 @@ import UserNotifications
 import Combine
 import os.log
 
+fileprivate var basePKAmode: PodKeepAlive = .whenOpen /// base PKA mode to use for all BLE pods
+
 protocol PodStateObserver: AnyObject {
     func podStateDidUpdate(_ state: PodState?)
     func podConnectionStateDidChange(isConnected: Bool)
@@ -874,23 +876,22 @@ extension OmniPumpManager {
         return state.podState?.expiresAt
     }
 
-    /// If running in a wedgingConfiguration (i.e., an InPlay pod with an iPhone 16 or 17e),
-    /// trying to set this value to .disable will actually set to an internal whenOnly mode.
+    /// Enforces the base Pod Keep Alive mode for all BLE pods
     var podKeepAlive: PodKeepAlive {
         get {
             return state.podKeepAlive
         }
         set {
             let newValueToSet: PodKeepAlive
-            if newValue == .disabled && wedgingConfiguration {
-                log.debug("@@@ setting basal podKeepAlive level for wedging Configuration to when open")
-                newValueToSet = .whenOpen
+            if newValue == .disabled && basePKAmode != .disabled && !state.podType.isEros {
+                log.debug("@@@ Setting podKeepAlive to base %{public}@", String(describing: basePKAmode))
+                newValueToSet = basePKAmode
             } else {
-                newValueToSet = newValue /// otherwise just set PKA to the requested value
+                newValueToSet = newValue /// set podKeepAlive to the requested value
             }
 
             if newValueToSet == state.podKeepAlive {
-                log.debug("@@@ initialzing podKeepAlive to %{public}@", String(describing: newValueToSet))
+                log.debug("@@@ initializing podKeepAlive to %{public}@", String(describing: newValueToSet))
             } else {
                 log.debug("@@@ changing podKeepAlive from %{public}@ to %{public}@",
                           String(describing: state.podKeepAlive), String(describing: newValueToSet))
@@ -1420,11 +1421,10 @@ extension OmniPumpManager {
                             // Have new podState, reset all the per pod pump manager state
                             self.resetPerPodPumpManagerState()
 
-                            /// If we are running in a BLE wedging configuration,
-                            /// set our base PKA level to the be internal "whenOpen" mode.
-                            if self.wedgingConfiguration && self.state.podKeepAlive == .disabled {
-                                self.log.debug("@@@ Setting pod keep alive to internal whenOpen mode")
-                                self.podKeepAlive = .whenOpen
+                            // Set the base Pod Keep Alive mode for all BLE pods
+                            if self.state.podKeepAlive == .disabled && basePKAmode != .disabled {
+                                self.log.debug("@@@ Setting base pod keep alive to %{public}@ mode", String(describing: basePKAmode))
+                                self.podKeepAlive = basePKAmode
                             }
 
                             self.pumpDelegate.notify { (delegate) in
@@ -2289,11 +2289,6 @@ extension OmniPumpManager {
             return deviceBLEName == BluetoothManager.inPlayPeripheralName
         }
         return nil // don't know -- maybe not paired yet
-    }
-
-    // Currently running a known BLE wedge configuration?
-    var wedgingConfiguration: Bool {
-        return usingInPlayPod == true && UIDevice.hasPossibleInPlayBLEIssues
     }
 }
 

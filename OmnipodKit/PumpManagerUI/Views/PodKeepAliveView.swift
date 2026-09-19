@@ -39,24 +39,21 @@ struct PodKeepAliveView: View {
             List {
                 Section {
                     VStack(alignment: .center, spacing: 4) {
-                        Text("Issues additional periodic status requests to try to minimize Bluetooth disconnects. Should no longer be needed for any iPhone and Omnipod combination.", comment: "Summary of the Pod Keep Alive concept")
+                        Text("Issues status requests to minimize Bluetooth disconnects. The default When Open selection should be sufficient for all iPhone and Pod combinations.", comment: "Summary of the Pod Keep Alive concept")
                             .font(.body)
                             .foregroundColor(.primary)
                     }
                 }
 
                 Section {
-                    /// Skip actually displaying the internal auto selected .whenOpen value as a user option
-                    ForEach(PodKeepAlive.allCases.filter { $0 != .whenOpen }, id: \.self) { preference in
+                    /// Skip displaying internal only Pod Keep Alives modes without a description
+                    ForEach(PodKeepAlive.allCases.filter { !$0.description.isEmpty }, id: \.self) { preference in
                         HStack {
                             CheckmarkListItem(
                                 title: Text(preference.title),
                                 description: Text(preference.description),
                                 isSelected: Binding(
-                                    get: {
-                                        /// Checkmark on match which includes an internal .whenOpen value matching .disabled
-                                        self.preference == preference || (preference == .disabled && self.preference == .whenOpen)
-                                    },
+                                    get: { self.preference == preference },
                                     set: { isSelected in
                                         if isSelected {
                                             self.preference = preference
