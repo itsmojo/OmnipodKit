@@ -3250,6 +3250,10 @@ extension OmniPumpManager: PumpManager {
                 self.runSession(withName: "Silence already acknowledged alert") { (result) in
                     switch result {
                     case .success(let session):
+                        // Another queued session may have cleared it already
+                        guard self.state.alertsWithPendingAcknowledgment.contains(alert) else {
+                            return
+                        }
                         do {
                             let _ = try session.acknowledgeAlerts(alerts: AlertSet(slots: [slot]))
                         } catch {
@@ -3464,6 +3468,12 @@ extension OmniPumpManager {
                         switch result {
                         case .success(let session):
                             self.handleSilencePodEnd(session: session)
+
+                            // A retry from silenceAcknowledgedAlerts may have cleared it already
+                            guard self.state.alertsWithPendingAcknowledgment.contains(alert) else {
+                                completion(nil)
+                                return
+                            }
 
                             do {
                                 let beepBlock = self.beepMessageBlock(beepType: .beep)
