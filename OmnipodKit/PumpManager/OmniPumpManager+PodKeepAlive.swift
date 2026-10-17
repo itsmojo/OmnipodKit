@@ -10,9 +10,9 @@ import Foundation
 import LoopKit
 import UIKit
 
-/// Maximum time between pod responses before triggering a get status when pod keep alives are enabled.
-/// This value must be less than 3 minutes plus margin to prevent DASH pods from disconnecting from an iPhone.
-private var podKeepAliveRefreshInterval: TimeInterval = .minutes(2) + .seconds(40)
+/// Maximum time between pod responses before triggering a get status when pod keep alives are enabled
+/// will be podKeepAliveRefreshMargin less than the podType.bluetoothDisconnectInterval (3 or 5 minutes)
+private var podKeepAliveRefreshMargin = TimeInterval(seconds: 10)
 
 private var podKeepAliveTimer: Timer?
 private var podKeepAliveAppInBackground = false
@@ -20,6 +20,13 @@ private var podKeepAliveAppInBackground = false
 /// OmniPumpManager extension that manages the podKeepAliveTimer to implement timer based pod keep alives
 /// by initiating a getPodStatus command if no response has been seen within the podKeepAliveRefreshInterval.
 extension OmniPumpManager {
+
+    private var podKeepAliveRefreshInterval: TimeInterval {
+        guard state.podType.disconnectInterval > 0 else {
+            return .minutes(3) - podKeepAliveRefreshMargin /// default value
+        }
+        return state.podType.disconnectInterval - podKeepAliveRefreshMargin
+    }
 
     private func timeStr(_ date: Date) -> String {
         return date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).second(.twoDigits))
@@ -46,6 +53,15 @@ extension OmniPumpManager {
         }
     }
 
+    /// Handles common cleanup work to disable using the pod keep alive timer
+    private func disablePodKeepAliveTimer(_ from: String) {
+        gotPodResponseSetup(nil) // pod response callbacks no longer needed
+        if podKeepAliveTimer?.isValid == true {
+            print("@@@ \(from) disabling pod keep alive timer at \(timeStr(Date()))")
+            podKeepAliveTimer?.invalidate()
+        }
+    }
+
     /// Timer keep alives run in the background only for modes that keep the pod connected there.
     private var podKeepAliveTimerAllowed: Bool {
         guard state.podKeepAlive.usesTimerBasedKeepAlives else { return false }
@@ -55,9 +71,7 @@ extension OmniPumpManager {
     func podKeepAliveAppDidEnterBackground() {
         podKeepAliveAppInBackground = true
         if !podKeepAliveTimerAllowed {
-            print("@@@ podKeepAliveAppDidEnterBackground disabling pod keep alive timer at \(timeStr(Date()))")
-            gotPodResponseSetup(nil) // callbacks on pod responses no longer needed
-            podKeepAliveTimer?.invalidate()
+            disablePodKeepAliveTimer(#function)
         }
     }
 
@@ -71,9 +85,7 @@ extension OmniPumpManager {
     /// Called when a pod response is received when timer based pod keep alives are enabled.
     func gotPodResponse() {
         if !podKeepAliveTimerAllowed {
-            print("@@@ gotPodResponse disabling pod keep alive timer at \(timeStr(Date()))")
-            gotPodResponseSetup(nil) // callbacks on pod responses no longer needed
-            podKeepAliveTimer?.invalidate()
+            disablePodKeepAliveTimer(#function)
             return
         }
 
@@ -107,9 +119,7 @@ extension OmniPumpManager {
                 setup_podKeepAliveTimer(when: when)
             }
         } else {
-            print("@@@ disabling pod keep alive timer at \(timeStr(now))")
-            gotPodResponseSetup(nil) // callbacks on pod responses no longer needed
-            podKeepAliveTimer?.invalidate()
+            disablePodKeepAliveTimer(#function)
         }
     }
 

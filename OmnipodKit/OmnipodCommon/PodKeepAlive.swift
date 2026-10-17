@@ -10,34 +10,43 @@ import Foundation
 
 enum PodKeepAlive: Int, CaseIterable, Codable {
     case disabled
-    case whenOpen
     case silentTune
     case rileyLink
+    case whenOpen
 
     var title: String {
         switch self {
         case .disabled:
             return LocalizedString("Disabled", comment: "Title string for PodKeepAlive.disabled")
-        case .whenOpen:
-            return LocalizedString("When Open", comment: "Title string for PodKeepAlive.whenOpen")
         case .silentTune:
             return LocalizedString("Silent Tune", comment: "Title string for PodKeepAlive.silentTune")
         case .rileyLink:
             return LocalizedString("RileyLink", comment: "Title string for PodKeepAlive.rileyLink")
+        case .whenOpen:
+            return LocalizedString("When Open", comment: "Title string for PodKeepAlive.whenOpen")
+        }
+    }
+
+    /// The displayed UI title string; maps "When Open" to "Disabled" as it is not a background option
+    var displayTitle: String {
+        switch self {
+        case .disabled, .silentTune, .rileyLink:
+            return self.title
+        case .whenOpen:
+            return PodKeepAlive.disabled.title /// display this internal only foreground mode as disabled
         }
     }
 
     var description: String {
         switch self {
         case .disabled:
-            return "" /// For internal use, this value will never be displayed
-        case .whenOpen:
-            return LocalizedString("Pod keep alive enabled when app is in the foreground with phone unlocked. Attempt to keep pod connected by issuing additional pod status request after 2 minutes, 40 seconds.", comment: "Description for PodKeepAlive.whenOpen")
+            return LocalizedString("Background Pod keep alive disabled (nominal behavior).", comment: "Description for PodKeepAlive.disabled")
         case .silentTune:
-            return LocalizedString("Pod keep alive enabled. Attempt to keep pod connected by issuing additional pod status request after 2 minutes, 40 seconds even when phone is locked by playing a silent tune. The silent tune may be interrupted by other apps. If silent tune is interrupted, pod keep alive stops working. The silent tune consumes extra iPhone battery.", comment: "Description for PodKeepAlive.silentTune")
+            return LocalizedString("Background Pod keep alive enabled using a silent tune. If silent tune is interrupted by other apps, Pod keep alive will stop working. The silent tune consumes extra iPhone battery.", comment: "Description for PodKeepAlive.silentTune")
         case .rileyLink:
-            return LocalizedString("Pod keep alive enabled. Additional pod status request issued after 2 minutes.\n\nRequires a RileyLink-compatible device within Bluetooth range. Allows pod keep alive messages when app is in background. This method uses less iPhone battery and slightly more DASH battery than the Silent Tune method. A RileyLink-compatible device must be enabled in pump view.",
-                comment: "Description for PodKeepAlive.rileyLink")
+            return LocalizedString("Background Pod keep alive enabled using a selected RileyLink-compatible device in the pump view. This method uses less iPhone battery than the Silent Tune method.", comment: "Description for PodKeepAlive.rileyLink")
+        case .whenOpen:
+            return "" /// N/A as only background PKA options are displayed
         }
     }
 
@@ -50,12 +59,12 @@ enum PodKeepAlive: Int, CaseIterable, Codable {
         switch self {
         case .disabled:
             return false /// No additional pod status requests to keep pod connected
-        case .whenOpen:
-            return false /// Only tries to keep pod connected when in foregrounded, but not in background
         case .silentTune:
             return true /// Always tries to stay connected by playing a silent tune in background
         case .rileyLink:
             return true /// Always tries to stay connected by using RileyLink BLE wakeups
+        case .whenOpen:
+            return false /// Only tries to keep pod connected when in foreground
         }
     }
 
@@ -64,12 +73,12 @@ enum PodKeepAlive: Int, CaseIterable, Codable {
         switch self {
         case .disabled:
             return false /// No additional pod status requests to keep pod connected
-        case .whenOpen:
-            return true /// Uses timer based keep alives, but only when in foreground
         case .silentTune:
             return true /// Uses timer based keep alives, both when in foreground and in background
         case .rileyLink:
             return false /// Uses BLE wakeups instead of timers
+        case .whenOpen:
+            return true /// Uses timer based keep alives when in foreground
         }
     }
 }
