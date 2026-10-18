@@ -86,7 +86,7 @@ extension OmniPumpManagerError: LocalizedError {
 public class OmniPumpManager: RileyLinkPumpManager {
 
     public var inSignalLoss: Bool {
-        isSignalLost(at: Date(), lastPumpDataReportDate: state.lastPumpDataReportDate)
+        isSignalLost(at: Date(), lastPodUpdate: state.podState?.podTimeUpdated)
     }
 
     public var isInoperable: Bool {
@@ -1006,7 +1006,7 @@ extension OmniPumpManager {
                     localizedMessage: LocalizedString("Insulin Suspended", comment: "Status highlight that insulin delivery was suspended."),
                     imageName: "pause.circle.fill",
                     state: .warning)
-            } else if isSignalLost(at: date, lastPumpDataReportDate: state.lastPumpDataReportDate) {
+            } else if isSignalLost(at: date, lastPodUpdate: state.podState?.podTimeUpdated) {
                 return PumpStatusHighlight(
                     localizedMessage: LocalizedString("Signal Loss", comment: "Status highlight when communications with the pod haven't happened recently."),
                     imageName: "exclamationmark.circle.fill",
@@ -1021,9 +1021,11 @@ extension OmniPumpManager {
         }
     }
 
-    private func isSignalLost(at date: Date, lastPumpDataReportDate: Date?) -> Bool {
-        date.timeIntervalSince(lastPumpDataReportDate ?? .distantPast) > .minutes(12)
-    }
+    /// Signal loss is defined as not having seen a pod response in over 12 minutes.
+    private func isSignalLost(at date: Date, lastPodUpdate: Date?) -> Bool {
+       let timeSinceLastResponse = date.timeIntervalSince(lastPodUpdate ?? .distantPast)
+       return timeSinceLastResponse > .minutes(12)
+   }
 
     func isRunningManualTempBasal(for state: OmniPumpManagerState) -> Bool {
         if let tempBasal = state.podState?.unfinalizedTempBasal, !tempBasal.isFinished(), !tempBasal.automatic {
