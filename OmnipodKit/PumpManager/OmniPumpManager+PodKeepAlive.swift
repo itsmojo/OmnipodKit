@@ -11,8 +11,9 @@ import LoopKit
 import UIKit
 
 /// Maximum time between pod responses before triggering a get status when pod keep alives are enabled
-/// will be podKeepAliveRefreshMargin less than the podType.bluetoothDisconnectInterval (3 or 5 minutes)
-private var podKeepAliveRefreshMargin = TimeInterval(seconds: 10)
+/// will be podKeepAliveRefreshMargin less than the podType.disconnectInterval (3 or 5 minutes)
+/// with a possible adjustment for the case of InPlay pods being used with problematic iPhones.
+private let podKeepAliveRefreshMargin = TimeInterval(seconds: 10)
 
 private var podKeepAliveTimer: Timer?
 private var podKeepAliveAppInBackground = false
@@ -22,10 +23,20 @@ private var podKeepAliveAppInBackground = false
 extension OmniPumpManager {
 
     private var podKeepAliveRefreshInterval: TimeInterval {
+
         guard state.podType.disconnectInterval > 0 else {
-            return .minutes(3) - podKeepAliveRefreshMargin /// default value
+            return .minutes(2) + .seconds(40) /// safe default value
         }
-        return state.podType.disconnectInterval - podKeepAliveRefreshMargin
+
+        let inPlayWedgingMargin: TimeInterval
+        if usingInPlayPod == true && UIDevice.hasPossibleInPlayBLEIssues {
+            /// Add an additional 10 seconds of margin for InPlay wedging configurations
+            inPlayWedgingMargin = .seconds(10)
+        } else {
+            inPlayWedgingMargin = 0
+        }
+
+        return state.podType.disconnectInterval - podKeepAliveRefreshMargin - inPlayWedgingMargin
     }
 
     private func timeStr(_ date: Date) -> String {

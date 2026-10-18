@@ -9644,14 +9644,14 @@
         }
       }
     },
-    "Background Pod keep alive disabled (nominal behavior)." : {
-      "comment" : "Description for PodKeepAlive.disabled"
-    },
-    "Background Pod keep alive enabled using a selected RileyLink-compatible device in the pump view. This method uses less iPhone battery than the Silent Tune method." : {
+    "Background keep alive enabled using a selected RileyLink-compatible device in the pump view that is in Bluetooth range. This method uses less iPhone battery than the Silent Tune method." : {
       "comment" : "Description for PodKeepAlive.rileyLink"
     },
-    "Background Pod keep alive enabled using a silent tune. If silent tune is interrupted by other apps, Pod keep alive will stop working. The silent tune consumes extra iPhone battery." : {
+    "Background keep alive enabled using a silent tune. If silent tune is interrupted by other apps, pod keep alive will stop working. The silent tune consumes extra iPhone battery." : {
       "comment" : "Description for PodKeepAlive.silentTune"
+    },
+    "Background keep alive is off (default)." : {
+      "comment" : "Description for PodKeepAlive.disabled"
     },
     "Background wake-ups from the pod are less frequent on this pod and phone combination." : {
       "comment" : "Subtitle of BLE heartbeat degraded notice row",
@@ -51232,7 +51232,7 @@
         }
       }
     },
-    "Pod keep alive options to issue background status requests to minimize Pod disconnects. Should no longer be needed for any iPhone and Pod combination." : {
+    "Pod keep alive options to issue background status requests to minimize pod disconnects. Should no longer be needed for any iPhone and pod combination." : {
       "comment" : "Summary of the Pod Keep Alive concept"
     },
     "Pod not connected" : {
